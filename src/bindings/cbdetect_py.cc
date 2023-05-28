@@ -3,6 +3,7 @@
 #include "libcbdetect/config.h"
 #include "libcbdetect/find_corners.h"
 #include "libcbdetect/get_init_location.h"
+#include "libcbdetect/image_normalization_and_gradients.h"
 #include <opencv2/opencv.hpp>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -78,8 +79,30 @@ PYBIND11_MODULE(cbdetect_py, m) {
   m.def(
       "hessian_response",
       [](const cv::Mat img) {
+        cv::Mat img_resized, img_norm, img_du, img_dv, img_angle, img_weight;
+        double scale = 0;
+        if (img.rows < 640 || img.cols < 480) {
+          scale = 2.0;
+        } else {
+          scale = 0.5;
+        }
+        cv::resize(img, img_resized,
+                   cv::Size(img.cols * scale, img.rows * scale), 0, 0,
+                   cv::INTER_LINEAR);
+        if (img_resized.channels() == 3) {
+#if CV_VERSION_MAJOR >= 4
+          cv::cvtColor(img_resized, img_norm, cv::COLOR_BGR2GRAY);
+#else
+          cv::cvtColor(img_resized, img_norm, CV_BGR2GRAY);
+#endif
+          img_norm.convertTo(img_norm, CV_64F, 1 / 255.0, 0);
+        } else {
+          img_resized.convertTo(img_norm, CV_64F, 1 / 255.0, 0);
+        }
+        image_normalization_and_gradients(img_norm, img_du, img_dv, img_angle,
+                                          img_weight, Params());
         cv::Mat gauss_img;
-        cv::GaussianBlur(img, gauss_img, cv::Size(7, 7), 1.5, 1.5);
+        cv::GaussianBlur(img_norm, gauss_img, cv::Size(7, 7), 1.5, 1.5);
         cv::Mat hessian_img;
         hessian_response(gauss_img, hessian_img);
         // double mn = 0, mx = 0;
