@@ -2,6 +2,7 @@
 #include "libcbdetect/boards_from_corners.h"
 #include "libcbdetect/config.h"
 #include "libcbdetect/find_corners.h"
+#include "libcbdetect/get_init_location.h"
 #include <opencv2/opencv.hpp>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -74,6 +75,19 @@ PYBIND11_MODULE(cbdetect_py, m) {
         "params"_a);
   m.def("boards_from_corners", &boards_from_corners,
         "Generate boards from the corners", "img"_a, "corners"_a, "params"_a);
+  m.def(
+      "hessian_response",
+      [](const cv::Mat img) {
+        cv::Mat gauss_img;
+        cv::GaussianBlur(img, gauss_img, cv::Size(7, 7), 1.5, 1.5);
+        cv::Mat hessian_img;
+        hessian_response(gauss_img, hessian_img);
+        // double mn = 0, mx = 0;
+        // cv::minMaxIdx(hessian_img, &mn, &mx, NULL, NULL);
+        hessian_img = cv::abs(hessian_img);
+        return hessian_img;
+      },
+      "Calculate the hessian response for the image", "img"_a);
 
 #ifdef VERSION_INFO
   m.attr("__version__") = MACRO_STRINGIFY(VERSION_INFO);
