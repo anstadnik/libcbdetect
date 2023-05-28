@@ -48,6 +48,7 @@
 
 namespace cbdetect {
 
+void hessian_response(const cv::Mat& img_in, cv::Mat& img_out);
 void get_init_location(const cv::Mat& img, const cv::Mat& img_du, const cv::Mat& img_dv,
                        Corner& corners, const Params& parmas);
 
